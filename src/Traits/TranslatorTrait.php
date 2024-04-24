@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 namespace TracyTran\EloquentTranslate\Traits;
 
@@ -8,46 +8,42 @@ use TracyTran\EloquentTranslate\Services\Translator;
 use TracyTran\EloquentTranslate\TranslateModelObserver;
 use TracyTran\EloquentTranslate\Facades\EloquentTranslate;
 
-trait TranslatorTrait {
+trait TranslatorTrait
+{
 
     public static function getTranslationModelClassName()
     {
         return get_class();
     }
 
-     /**
+    /**
      * Hook into the boot method of the model and register the observer
-     * 
+     *
      * @return void
      */
-    protected static function boot()
+    protected static function bootTranslatorTrait(): void
     {
-        parent::boot();
-
         $modelClass = self::getTranslationModelClassName();
-        $modelClass::observe( new TranslateModelObserver );
+        $modelClass::observe(new TranslateModelObserver);
     }
 
     public function getAttribute($key, $attr = null)
     {
         $attr = $attr ?? parent::getAttribute($key);
 
-        // Model field we are trying to access is not in the array of 
+        // Model field we are trying to access is not in the array of
         // attributes to translate so we skip.
-        if( ! in_array( $key, $this->getTranslationAttributes() ) )
+        if (!in_array($key, $this->getTranslationAttributes()) || !$this->relationLoaded('localeTranslations'))
             return $attr;
-        
-        try{
-            $translationModel = Translation::whereModel( $this->getTranslationModelClassName() )
-                ->whereModelId( $this->id )
-                ->where( 'attribute', $key )
-                ->whereLocale( EloquentTranslate::getLocale() )
-                ->first();
+
+        try {
+            $translationModel = $this->localeTranslations->where('attribute', $key)->first();
 
             return $translationModel ? $translationModel->translation : $attr;
 
-        } catch(\Exception $e) {}
-        
+        } catch (\Exception $e) {
+        }
+
         return $attr;
     }
 
@@ -55,46 +51,41 @@ trait TranslatorTrait {
     {
         $model = $this;
 
-        foreach( $model->getTranslationAttributes() as $attribute ){
+        foreach ($model->getTranslationAttributes() as $attribute) {
 
-            if( $this->attributesToIgnoreAttribute( $model, $attribute ) ) {
+            if ($this->attributesToIgnoreAttribute($model, $attribute)) {
 
                 continue;
             }
 
             $value = $model->{$attribute};
 
-            if( $value )
-            {
+            if ($value) {
                 // Fetch and store model translations from  Translate
-                foreach( config('eloquent-translate.locales') as $locale )
-                {
-                    // In order to avoid repeating translations, we check if 
+                foreach (config('eloquent-translate.locales') as $locale) {
+                    // In order to avoid repeating translations, we check if
                     // the value already exists, if it does, we skip translations.
                     // However, model events like created and updated will override this.
-                    if( $force !== true )
-                    {
+                    if ($force !== true) {
                         // Check if translation exists, if it does, break out of the loop
-                        if( $this->translations()
-                            ->where('locale', $locale) 
-                            ->where('attribute', $attribute)
-                            ->count() > 0
-                        )
-                        {
+                        if ($this->translations()
+                                ->where('locale', $locale)
+                                ->where('attribute', $attribute)
+                                ->count() > 0
+                        ) {
                             break;
                         }
                     }
 
-                    // Check if queue was enabled and process with queue 
-                    if( config('eloquent-translate.queue') === true){
+                    // Check if queue was enabled and process with queue
+                    if (config('eloquent-translate.queue') === true) {
 
-                        // Disatch the job 
-                        dispatch( new TranslatorJob( $model, $attribute, $locale ) );
-                    }
-                    else {
+                        // Disatch the job
+                        dispatch(new TranslatorJob($model, $attribute, $locale));
+                    } else {
 
-                        // Run without queue 
-                        ( new Translator( $model, $attribute, $locale ) )->saveTranslation();
+                        // Run without queue
+                        (new Translator($model, $attribute, $locale))->saveTranslation();
                     }
                 }
             }
@@ -103,43 +94,44 @@ trait TranslatorTrait {
         return true;
     }
 
-    public function attributesToIgnoreAttribute( $model, $attr ) {
+    public function attributesToIgnoreAttribute($model, $attr)
+    {
 
-        if( method_exists( $this, 'ignoreAttributes' ) ) {
+        if (method_exists($this, 'ignoreAttributes')) {
 
             $ignoreAttributes = $this->ignoreAttributes();
 
-            if( ! array_key_exists( $attr, $ignoreAttributes ) ) {
+            if (!array_key_exists($attr, $ignoreAttributes)) {
 
                 return false;
             }
 
             try {
 
-                $attributeData = $ignoreAttributes[ $attr ];
+                $attributeData = $ignoreAttributes[$attr];
 
-                if( $model->{ $attributeData['column'] } == $attributeData['value'] ) {
+                if ($model->{$attributeData['column']} == $attributeData['value']) {
 
                     return true;
                 }
+            } catch (\Exception $e) {
             }
-            catch(\Exception $e){}
         }
 
         return false;
     }
-    
+
     /**
      * Set translations manually on the model.
-     * 
+     *
      * @return Boolean|Illuminate\Database\Eloquent\Model
      */
     public function setTranslation($attribute, $locale, $translation, $force = false)
-    {   
-        // Check if the attribute name is defined in the model. If it's not, 
+    {
+        // Check if the attribute name is defined in the model. If it's not,
         // and the $force parameter is not true, we skip.
 
-        if( ! $force && ! in_array( $attribute, $this->getTranslationAttributes() ) )
+        if (!$force && !in_array($attribute, $this->getTranslationAttributes()))
             return false;
 
         return $this->translations()->updateOrCreate(
@@ -154,21 +146,21 @@ trait TranslatorTrait {
             ]
         );
     }
-    
+
     /**
      * Set translations manually on the model.
-     * 
+     *
      * @return Boolean|Illuminate\Database\Eloquent\Model
      */
     public function setTranslations($attribute, $translations)
-    {   
-        // Check if the attribute name is defined in the model. If it's not, 
+    {
+        // Check if the attribute name is defined in the model. If it's not,
         // and the $force parameter is not true, we skip.
 
-        if(! in_array( $attribute, $this->getTranslationAttributes() ) )
+        if (!in_array($attribute, $this->getTranslationAttributes()))
             return false;
-        
-        collect($translations)->each(function($translation, $locale) use($attribute) {
+
+        collect($translations)->each(function ($translation, $locale) use ($attribute) {
 
             $this->translations()->updateOrCreate(
                 [
@@ -188,17 +180,16 @@ trait TranslatorTrait {
 
     /**
      * Fetch translations for a given model.
-     * 
+     *
      * @return Illuminate\Database\Eloquent\Model|Illuminate\Support\Collection
      */
-    public function getTranslation($attribute, $locale, $default = null )
+    public function getTranslation($attribute, $locale, $default = null)
     {
         $translation = $this->translations()
             ->where('attribute', $attribute)
             ->where('locale', $locale);
 
-        if( $translation->count() > 0 )
-        {
+        if ($translation->count() > 0) {
             return $translation->first()->translation;
         }
 
@@ -207,10 +198,10 @@ trait TranslatorTrait {
 
     /**
      * Check if model has translation for a given locale and attribute
-     * 
+     *
      * @return Boolean
      */
-    public function hasTranslation( $attribute, $locale )
+    public function hasTranslation($attribute, $locale)
     {
         $translation = $this->translations()
             ->where('attribute', $attribute)
@@ -221,7 +212,7 @@ trait TranslatorTrait {
 
     /**
      * Fetch translations for a given model and a locale.
-     * 
+     *
      * @return Illuminate\Support\Collection
      */
     public function getTranslations($locale)
@@ -231,29 +222,29 @@ trait TranslatorTrait {
 
     /**
      * The translation relationship.
-     * 
+     *
      * @return \Illuminate\Database\Eloquent\Relations
      */
     public function translations()
     {
-        return $this->hasMany( Translation::class, 'model_id', 'id' )->where('model', $this->getTranslationModelClassName() );
+        return $this->hasMany(Translation::class, 'model_id', 'id')->where('model', $this->getTranslationModelClassName());
+    }
+
+    public function localeTranslations()
+    {
+        return $this->translations()->where('locale', EloquentTranslate::getLocale());
     }
 
     /**
      * Get the attributes to be translateable
-     * 
+     *
      * @return array
      */
-    public function getTranslationAttributes()
-    {
-        return property_exists($this, 'translateAttributes') && is_array( $this->translateAttributes )
-            ? $this->translateAttributes
-            : [];
-    }
+    public abstract function getTranslationAttributes(): array;
 
     /**
      * Delete model translations by locale
-     * 
+     *
      * @return \Illuminate\Database\Eloquent\Relations
      */
     public function deleteTranslation($attribute, $locale)

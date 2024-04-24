@@ -13,7 +13,9 @@ class GoogleTranslate implements TranslatorContract
         $translatedText = null;
 
         try {
-            $client = new TranslateClient(config('eloquent-translate.google_api_key'));
+            $client = new TranslateClient([
+                'key' => config('eloquent-translate.google_api_key')
+            ]);
 
             $translatedText = $client->translate($text, [
                 'target' => $locale
