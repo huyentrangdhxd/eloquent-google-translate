@@ -1,0 +1,38 @@
+{
+    "name": "paschal-customize-tracy/eloquent-translate",
+    "description": "A package for translating Laravel models with ease.  is customized from the package of Ezeugwu Paschal (ezeugwupaschal@yahoo.com)",
+    "type": "library",
+    "license": "MIT",
+    "keywords": ["eloquent", "google", "translate", "i18n", "laravel", "translatable", "TracyTran"],
+    "minimum-stability": "dev",
+    "authors": [
+        {
+            "name": "Tracy Tran",
+            "email": "huyentrangdhxd@gmail.com"
+        }
+    ],
+    "require-dev": {
+        "laravel/laravel": "dev-develop"
+    },
+    "autoload": {
+        "psr-4": {
+            "TracyTran\\EloquentTranslate\\": "src/"
+        },
+        "files": [
+            "src/helpers.php"
+        ]
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "TracyTran\\EloquentTranslate\\Providers\\TranslateServiceProvider"
+            ],
+            "aliases": {
+                "EloquentTranslate": "TracyTran\\EloquentTranslate\\Facades\\EloquentTranslate"
+            }
+        }
+    },
+    "require": {
+        "google/cloud-translate": "^1.17"
+    }
+}
