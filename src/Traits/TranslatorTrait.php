@@ -16,6 +16,13 @@ trait TranslatorTrait
         return get_class();
     }
 
+    // this function will update appends variable
+    public function initializeTranslatorTrait()
+    {
+        $this->appends = array_merge($this->appends, $this->getTranslationAttributes());
+        $this->hidden[] = 'localeTranslations';
+    }
+
     /**
      * Hook into the boot method of the model and register the observer
      *
@@ -25,16 +32,35 @@ trait TranslatorTrait
     {
         $modelClass = self::getTranslationModelClassName();
         $modelClass::observe(new TranslateModelObserver);
+
+        static::addGlobalScope('translate', function ($builder) {
+            $builder->with('localeTranslations');
+        });
+
     }
 
-    public function getAttribute($key, $attr = null)
+    public function __call($method, $parameters)
+    {
+        if (preg_match('/^get(.+)Attribute$/', $method, $matches)) {
+            $key = lcfirst($matches[1]);
+            if (in_array($key, static::getTranslationAttributes())) {
+                return $this->getAttributeTranslation($key);
+            }
+        }
+
+        return parent::__call($method, $parameters);
+    }
+
+    public function getAttributeTranslation($key, $attr = null)
     {
         $attr = $attr ?? parent::getAttribute($key);
 
         // Model field we are trying to access is not in the array of
         // attributes to translate so we skip.
-        if (!in_array($key, $this->getTranslationAttributes()) || !$this->relationLoaded('localeTranslations'))
+        if (!in_array($key, $this->getTranslationAttributes()) || !$this->relationLoaded('localeTranslations')) {
+
             return $attr;
+        }
 
         try {
             $translationModel = $this->localeTranslations->where('attribute', $key)->first();
@@ -47,48 +73,38 @@ trait TranslatorTrait
         return $attr;
     }
 
-    public function translate($force = false)
+    public function getAttribute($key, $attr = null)
+    {
+        return $this->getAttributeTranslation($key, $attr = null);
+    }
+
+    public function translate($locale = null)
     {
         $model = $this;
+        $validAttributes = [];
 
         foreach ($model->getTranslationAttributes() as $attribute) {
-
-            if ($this->attributesToIgnoreAttribute($model, $attribute)) {
-
+            $value = $model->{$attribute};
+            if (
+                !$value ||
+                $this->attributesToIgnoreAttribute($model, $attribute) ||
+                (!$model->wasChanged($attribute) && !$model->wasRecentlyCreated)
+            ) {
                 continue;
             }
 
-            $value = $model->{$attribute};
+            $validAttributes[] = $attribute;
 
-            if ($value) {
-                // Fetch and store model translations from  Translate
-                foreach (config('eloquent-translate.locales') as $locale) {
-                    // In order to avoid repeating translations, we check if
-                    // the value already exists, if it does, we skip translations.
-                    // However, model events like created and updated will override this.
-                    if ($force !== true) {
-                        // Check if translation exists, if it does, break out of the loop
-                        if ($this->translations()
-                                ->where('locale', $locale)
-                                ->where('attribute', $attribute)
-                                ->count() > 0
-                        ) {
-                            break;
-                        }
-                    }
+        }
+        $locales = $locale ?? config('eloquent-translate.locales');
 
-                    // Check if queue was enabled and process with queue
-                    if (config('eloquent-translate.queue') === true) {
+        if (config('eloquent-translate.queue') === true) {
+            // Disatch the job
+            dispatch(new TranslatorJob($model, $validAttributes, $locales));
+        } else {
 
-                        // Disatch the job
-                        dispatch(new TranslatorJob($model, $attribute, $locale));
-                    } else {
-
-                        // Run without queue
-                        (new Translator($model, $attribute, $locale))->saveTranslation();
-                    }
-                }
-            }
+            // Run without queue
+            (new Translator($model, $validAttributes, $locales))->saveTranslation();
         }
 
         return true;
@@ -240,7 +256,7 @@ trait TranslatorTrait
      *
      * @return array
      */
-    public abstract function getTranslationAttributes(): array;
+    public static abstract function getTranslationAttributes(): array;
 
     /**
      * Delete model translations by locale

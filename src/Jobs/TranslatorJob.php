@@ -1,8 +1,9 @@
 <?php
 
 namespace TracyTran\EloquentTranslate\Jobs;
- 
+
 use Illuminate\Bus\Queueable;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -22,13 +23,13 @@ class TranslatorJob implements ShouldQueue
      *
      * @return void
      */
-    public function __construct($model, $attribute, $locale)
+    public function __construct(Model $model, $attributes, $locales)
     {
         $this->model = $model;
-        $this->attribute = $attribute;
-        $this->locale = $locale;
+        $this->attributes = $attributes;
+        $this->locales = $locales;
     }
- 
+
     /**
      * Execute the job.
      *
@@ -36,6 +37,6 @@ class TranslatorJob implements ShouldQueue
      */
     public function handle()
     {
-        ( new Translator( $this->model, $this->attribute, $this->locale ) )->saveTranslation();
+        ( new Translator( $this->model, $this->attributes, $this->locales ) )->saveTranslation();
     }
 }

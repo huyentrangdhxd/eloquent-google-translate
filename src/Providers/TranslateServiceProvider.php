@@ -32,13 +32,13 @@ class TranslateServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        // What we are trying to achieve here with this binding is to autodetect the locale sent from 
+        // What we are trying to achieve here with this binding is to autodetect the locale sent from
         // the browser by checking if its present in the cookie or checking a specific locale.
         $this->app->bind('eloquent-translate', function () {
 
             $headers = getallheaders();
 
-            return new EloquentTranslate( $_COOKIE['locale'] ?? $headers['Translate-Locale'] ?? null );
+            return new EloquentTranslate( app()->getLocale() ?? $headers['X-localization'] ?? null );
         });
     }
     /**
@@ -62,7 +62,7 @@ class TranslateServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(__DIR__ . '/../config/eloquent-translate.php',
             'eloquent-translate');
     }
-    
+
     /**
      * Load migrations.
      *
