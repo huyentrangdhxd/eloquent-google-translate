@@ -12,7 +12,7 @@ class Translator
     public function __construct(Model $model, $attributes, $locales)
     {
         $this->model = $model;
-        $this->attributes = $attributes;
+        $this->attributes = Arr::wrap($attributes);
         $this->locales = Arr::wrap($locales);
     }
 
@@ -25,9 +25,9 @@ class Translator
                 $upsert[] = [
                     'model' => get_class($this->model),
                     'model_id' => $this->model->id,
-                    'attribute' => $this->attribute,
-                    'locale' => $this->locale,
-                    'translation' => $this->getTranslation($this->model->{$this->attribute}, $this->locale)
+                    'attribute' => $attribute,
+                    'locale' => $locale,
+                    'translation' => $this->getTranslation($this->model->{$attribute}, $locale)
                 ];
             }
         }

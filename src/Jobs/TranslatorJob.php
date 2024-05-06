@@ -15,8 +15,8 @@ class TranslatorJob implements ShouldQueue
     use InteractsWithQueue, Queueable, SerializesModels;
 
     public $model;
-    public $attribute;
-    public $locale;
+    public $attributes;
+    public $locales;
 
     /**
      * Create a new job instance.

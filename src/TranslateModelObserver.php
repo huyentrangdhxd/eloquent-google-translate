@@ -16,7 +16,7 @@ class TranslateModelObserver
     public function created(Model $model)
     {
         if( config('eloquent-translate.auto_translate') === true)
-            $model->translate(true);
+            $model->translate();
 
         return $model;
     }
@@ -30,7 +30,7 @@ class TranslateModelObserver
     public function updated(Model $model)
     {   
         if( config('eloquent-translate.auto_translate') === true)
-            $model->translate(true);
+            $model->translate();
 
         return $model;
     }

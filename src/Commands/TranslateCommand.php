@@ -1,8 +1,14 @@
-<?php 
+<?php
 
 namespace TracyTran\EloquentTranslate\Commands;
 
-class TranslateCommand extends BaseCommand {
+use App\Enums\Language;
+use Illuminate\Support\Arr;
+use TracyTran\EloquentTranslate\Jobs\TranslatorJob;
+use TracyTran\EloquentTranslate\Services\Translator;
+
+class TranslateCommand extends BaseCommand
+{
 
     public function __construct()
     {
@@ -14,7 +20,7 @@ class TranslateCommand extends BaseCommand {
      *
      * @var string
      */
-    protected $signature = 'eloquent-translate:translate {--M|model=} {--F|force}';
+    protected $signature = 'eloquent-translate:translate {model} {locale?}';
 
     /**
      * The console command description.
@@ -30,62 +36,71 @@ class TranslateCommand extends BaseCommand {
      */
     public function handle()
     {
-        $model = $modelRaw = $this->option('model');
-        $force = $this->option('force');
+        $model = $modelRaw = $this->argument('model');
 
         $this->setModel($model);
 
-        // Check if model exists 
+        // Check if model exists
         $model = $this->getModelInstance();
 
-        // Check if model uses translation trait 
+        // Check if model uses translation trait
         $this->modelUsesTrait();
 
+        $query = $this->translate($model);
+
+    }
+
+    private function translate($model)
+    {
+        $locales = $this->argument('locale')
+            ? Arr::wrap($this->argument('locale'))
+            : config('eloquent-translate.locales');
         // Fetch attribtes
         $attributes = $model->getTranslationAttributes();
 
-        // Check if attribtes are defined 
-        if( ! $attributes || empty( $attributes ) )
-        {
+        // Check if attribtes are defined
+        if (!$attributes || empty($attributes)) {
             return $this->error("Translateable attributes not specified on model class. It should be an array of attributes / columns to translate");
         }
 
-
-        //Check if a base query is defined on the model. 
+        // Check if a base query is defined on the model.
         // Use that instead of quering all the models in the table.
         $queryScope = 'scopeBulkTranslationsQuery';
 
-        try {
-
-            $methodExists = ( new \ReflectionMethod($model, $queryScope) )->isStatic();
-
-            if( $methodExists )
-            {
-                // Fetch the query from the model
-                $query = $model::{'bulkTranslationsQuery'}()->get();
-                return $this->runRequest( $query, $force );
-            }
-        }
-        catch(\Exception $e) {}
-
-        //Translate all models if no query scope is defined in the model
-        $model = $model->all();
-        return $this->runRequest( $model );
-    }
-
-    private function runRequest($model, $force = false) {
-
-        $this->line("\n");
-        $bar = $this->output->createProgressBar(count($model));
+        $this->line("\n Model:". $model::class);
+        $bar = $this->output->createProgressBar(count($attributes) + count($locales));
         $bar->start();
-        
-        $model->each(function($model, $key) use($force, $bar){
 
-            $model->translate($force, $force);
-            $bar->advance();
-        });
-        
+        $model = (method_exists($model, $queryScope)) ? $model->{'bulkTranslationsQuery'}() : $model;
+        foreach ($attributes as $attribute) {
+            foreach ($locales as $locale) {
+                $query = (clone $model)->whereDoesntHave(
+                    'translations',
+                    fn($q) => $q->where('locale', $locale)->where('attribute', $attribute)
+                );
+                $this->runRequest($query->get(), $attribute, $locale);
+                $bar->advance();
+            }
+
+        }
+
         $bar->finish();
         $this->line("\n");
+    }
+
+    private function runRequest($list, $attribute, $locale)
+    {
+
+        $list->each(function ($model, $key)  use ($attribute, $locale) {
+
+            if (config('eloquent-translate.queue') === true) {
+                // Disatch the job
+                dispatch(new TranslatorJob($model, $attribute, $locale));
+            } else {
+
+                // Run without queue
+                (new Translator($model, $attribute, $locale))->saveTranslation();
+            }
+        });
     }
 }

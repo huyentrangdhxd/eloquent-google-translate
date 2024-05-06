@@ -17,12 +17,35 @@ class GoogleTranslate implements TranslatorContract
                 'key' => config('eloquent-translate.google_api_key')
             ]);
 
-            $translatedText = $client->translate($text, [
+
+            $translatedText = $client->translate($this->convertText($text), [
                 'target' => $locale
             ]);
         } catch (\Exeption $e) {
         }
 
-        return $translatedText['text'];
+        return $this->removeNoTranslate($translatedText['text']);
+    }
+
+    private function convertText($text)
+    {
+        $noTranslates = config('eloquent-translate.no_translate_between');
+
+        foreach ($noTranslates as $noTranslate) {
+            $startChar = preg_quote($noTranslate[0], '/');
+            $endChar = preg_quote($noTranslate[1], '/');
+            $pattern = '/' . $startChar . '(.*?)' . $endChar . '/s';
+            $replacement = '<span class="notranslate">'.$noTranslate[0] . '$1' . $noTranslate[1].'</span>';
+
+            // Perform replacement
+            $text = preg_replace($pattern, $replacement, $text);
+        }
+
+        return $text;
+    }
+
+    private function removeNoTranslate($text)
+    {
+        return str_replace(['<span class="notranslate">', '</span>'], '', $text);
     }
 }
