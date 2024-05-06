@@ -1,4 +1,5 @@
 # A package to translate Laravel eloquent Models easily
+This package is customized from the package of Ezeugwu Paschal (ezeugwupaschal@yahoo.com) https://github.com/paschaldev/eloquent-translate
 This package serves as the complete solution to handling translations in a laravel application for data stored in the database. Translations for every model are stored in a database table. By default, automatic translation is enabled. Automatic translation uses third party provider(s) to translate your database attributes, the default for now is Google Translate API. If you choose not to use a third party translation service, you can also manually set your translation for any model.
 
 ## Installation 
@@ -155,4 +156,14 @@ $model->setTranslations('name', $translations);
 In the code above, we are setting translations for the `name` attribute on the model assuming the value is `Good Morning` to 3 locales at once: French, Igbo, Yoruba.
 
 ### Fetching Translation 
+
+### What did I customize?
+- I change updateOrCreate function on class Translator to upsert function, think it will improve speed a little
+- Add addGlobalScope to use eager loading, avoiding lazy load (old code)
+- Override translation attributes, the idea is:
+  + First, we have to add translation attributes to appends. 
+  `$this->appends = array_merge($this->appends, $this->getTranslationAttributes());`
+  + Second, use __call to handle getxxxAtribute function because laravel will call getxxxAtribute as it appears on appends property
+- Handle notranslate: add tag <span class="notranslate"> </span> if it includes strings which we do not want to translate
+- Change TranslateCommand
 
