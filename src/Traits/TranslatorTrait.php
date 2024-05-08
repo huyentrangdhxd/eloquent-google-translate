@@ -19,7 +19,7 @@ trait TranslatorTrait
     // this function will update appends variable
     public function initializeTranslatorTrait()
     {
-        $this->appends = array_merge($this->appends, $this->getTranslationAttributes());
+        $this->appends = array_unique(array_merge($this->appends, $this->getTranslationAttributes()));
         $this->hidden[] = 'localeTranslations';
     }
 

@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 namespace TracyTran\EloquentTranslate;
 
@@ -10,7 +10,7 @@ class EloquentTranslate {
 
     public function __construct( $locale = null )
     {
-        $this->locale = $locale;
+        $this->locale = $locale  ?? get_translate_locale();
     }
 
     /**
@@ -19,12 +19,12 @@ class EloquentTranslate {
      * @return string
      */
     public function getTranslationsTableName()
-    {    
+    {
         return config('eloquent-translate.database_table');
     }
 
     public function getLocale()
     {
-        return $this->locale ?? config('eloquent-translate.fallback_locale');
+        return $this->locale;
     }
 }
