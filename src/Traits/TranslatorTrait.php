@@ -2,6 +2,7 @@
 
 namespace TracyTran\EloquentTranslate\Traits;
 
+use Illuminate\Support\Str;
 use TracyTran\EloquentTranslate\Jobs\TranslatorJob;
 use TracyTran\EloquentTranslate\Models\Translation;
 use TracyTran\EloquentTranslate\Services\Translator;
@@ -42,7 +43,7 @@ trait TranslatorTrait
     public function __call($method, $parameters)
     {
         if (preg_match('/^get(.+)Attribute$/', $method, $matches)) {
-            $key = lcfirst($matches[1]);
+            $key = Str::snake(lcfirst($matches[1]));
             if (in_array($key, static::getTranslationAttributes())) {
                 return $this->getAttributeTranslation($key);
             }
@@ -243,7 +244,8 @@ trait TranslatorTrait
      */
     public function translations()
     {
-        return $this->hasMany(Translation::class, 'model_id', 'id')->where('model', $this->getTranslationModelClassName());
+        return $this->hasMany(Translation::class, 'model_id', 'id')
+            ->where('model', $this->getTranslationModelClassName());
     }
 
     public function localeTranslations()
