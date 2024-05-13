@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 namespace TracyTran\EloquentTranslate;
 
@@ -28,7 +28,7 @@ class TranslateModelObserver
      * @return void
      */
     public function updated(Model $model)
-    {   
+    {
         if( config('eloquent-translate.auto_translate') === true)
             $model->translate();
 

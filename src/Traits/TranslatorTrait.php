@@ -34,10 +34,11 @@ trait TranslatorTrait
         $modelClass = self::getTranslationModelClassName();
         $modelClass::observe(new TranslateModelObserver);
 
-        static::addGlobalScope('translate', function ($builder) {
-            $builder->with('localeTranslations');
-        });
-
+        if (self::autoAddGlobalScope()) {
+            static::addGlobalScope('translate', function ($builder) {
+                $builder->with('localeTranslations');
+            });
+        }
     }
 
     public function __call($method, $parameters)
@@ -86,11 +87,7 @@ trait TranslatorTrait
 
         foreach ($model->getTranslationAttributes() as $attribute) {
             $value = $model->{$attribute};
-            if (
-                !$value ||
-                $this->attributesToIgnoreAttribute($model, $attribute) ||
-                (!$model->wasChanged($attribute) && !$model->wasRecentlyCreated)
-            ) {
+            if (!$value || (!$model->wasChanged($attribute) && !$model->wasRecentlyCreated)) {
                 continue;
             }
 
@@ -111,31 +108,9 @@ trait TranslatorTrait
         return true;
     }
 
-    public function attributesToIgnoreAttribute($model, $attr)
+    public static function autoAddGlobalScope() :bool
     {
-
-        if (method_exists($this, 'ignoreAttributes')) {
-
-            $ignoreAttributes = $this->ignoreAttributes();
-
-            if (!array_key_exists($attr, $ignoreAttributes)) {
-
-                return false;
-            }
-
-            try {
-
-                $attributeData = $ignoreAttributes[$attr];
-
-                if ($model->{$attributeData['column']} == $attributeData['value']) {
-
-                    return true;
-                }
-            } catch (\Exception $e) {
-            }
-        }
-
-        return false;
+        return true;
     }
 
     /**
