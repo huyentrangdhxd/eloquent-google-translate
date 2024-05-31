@@ -75,11 +75,6 @@ trait TranslatorTrait
         return $attr;
     }
 
-    public function getAttribute($key, $attr = null)
-    {
-        return $this->getAttributeTranslation($key, $attr = null);
-    }
-
     public function translate($locale = null)
     {
         $model = $this;
