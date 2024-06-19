@@ -2,8 +2,7 @@
 
 return [
 
-
-
+    'manual_translate' => env('MANUAL_TRANSLATE', true),
     /*
     |--------------------------------------------------------------------------
     | Database Table name
@@ -55,7 +54,7 @@ return [
     |
     | @var String|null
     */
-    'queue_name' => env( 'ELOQUENT_TRANSLATE_QUEUE_NAME', 'translation'),
+    'queue_name' => env('ELOQUENT_TRANSLATE_QUEUE_NAME', 'translation'),
 
     /*
     |--------------------------------------------------------------------------
@@ -92,7 +91,7 @@ return [
     |
     | @var String
     */
-    'fallback_locale' => env( 'ELOQUENT_TRANSLATE_FALLBACK_LOCALE', 'en'),
+    'fallback_locale' => env('ELOQUENT_TRANSLATE_FALLBACK_LOCALE', 'en'),
 
     /*
     |--------------------------------------------------------------------------
@@ -107,7 +106,7 @@ return [
     |
     | @var Boolean
     */
-    'detect_locale' => env( 'ELOQUENT_TRANSLATE_DETECT_LOCALE', true),
+    'detect_locale' => env('ELOQUENT_TRANSLATE_DETECT_LOCALE', true),
 
     /*
     |--------------------------------------------------------------------------
@@ -124,7 +123,10 @@ return [
     |
     | @var Boolean
     */
-    'auto_translate' => env( 'ELOQUENT_TRANSLATE_AUTO', true),
+    'auto_translate' => env('ELOQUENT_TRANSLATE_AUTO', true),
 
-    'no_translate_between' => [['{{', '}}']]
+    'no_translate_between' => [['{{', '}}']],
+
+    // key to create/update manually
+    'translation_data' => 'translation_data',
 ];

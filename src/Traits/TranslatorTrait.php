@@ -12,6 +12,8 @@ use TracyTran\EloquentTranslate\Facades\EloquentTranslate;
 trait TranslatorTrait
 {
 
+    protected $translateData = [];
+
     public static function getTranslationModelClassName()
     {
         return get_class();
@@ -29,7 +31,7 @@ trait TranslatorTrait
      *
      * @return void
      */
-    protected static function bootTranslatorTrait(): void
+    protected static function bootTranslatorTrait()
     {
         $modelClass = self::getTranslationModelClassName();
         $modelClass::observe(new TranslateModelObserver);
@@ -82,6 +84,15 @@ trait TranslatorTrait
 
     public function translate($locale = null)
     {
+        if (config('eloquent-translate.manual_translate')) {
+            $this->manualTranslate();
+        } else {
+            $this->autoTranslate($locale);
+        }
+    }
+
+    public function autoTranslate($locale = null)
+    {
         $model = $this;
         $validAttributes = [];
 
@@ -108,7 +119,17 @@ trait TranslatorTrait
         return true;
     }
 
-    public static function autoAddGlobalScope() :bool
+    public function manualTranslate()
+    {
+        $newValue = ['model_id' => $this->id];
+        foreach ($this->translateData as $key => $translation) {
+            $this->translateData[$key] = array_merge($translation, $newValue);
+        }
+
+        $this->translations()->upsert($this->translateData, ['model', 'model_id', 'locale', 'attribute']);
+    }
+
+    public static function autoAddGlobalScope(): bool
     {
         return true;
     }
@@ -251,5 +272,34 @@ trait TranslatorTrait
     public function deleteAllTranslations()
     {
         return $this->translations()->delete();
+    }
+
+    public function fill(array $attributes)
+    {
+        $multiLangs = $locale ?? config('eloquent-translate.translation_data');
+
+        if (in_array($multiLangs, array_keys($attributes))) {
+            $this->handleTranslateData($attributes[$multiLangs]);
+            unset($attributes[$multiLangs]);
+        }
+
+        return parent::fill($attributes);
+    }
+
+    public function handleTranslateData($data)
+    {
+        $handleDate = [];
+        foreach ($data as $locale => $attributes) {
+            foreach ($attributes as $attribute => $value) {
+                $handleDate[] = [
+                    'attribute' => $attribute,
+                    'model' => self::getTranslationModelClassName(),
+                    'locale' => $locale,
+                    'translation' => $value,
+                ];
+            }
+        }
+
+        $this->translateData = $handleDate;
     }
 }
