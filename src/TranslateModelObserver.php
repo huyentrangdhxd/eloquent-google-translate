@@ -13,21 +13,7 @@ class TranslateModelObserver
      * @param  \App\User  $user
      * @return void
      */
-    public function created(Model $model)
-    {
-        if( config('eloquent-translate.auto_translate') === true)
-            $model->translate();
-
-        return $model;
-    }
-
-    /**
-     * Handle the User "updated" event.
-     *
-     * @param  \App\User  $user
-     * @return void
-     */
-    public function updated(Model $model)
+    public function saved(Model $model)
     {
         if( config('eloquent-translate.auto_translate') === true)
             $model->translate();
