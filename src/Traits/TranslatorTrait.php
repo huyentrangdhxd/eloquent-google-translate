@@ -69,7 +69,7 @@ trait TranslatorTrait
         try {
             $translationModel = $this->localeTranslations->where('attribute', $key)->first();
 
-            return $translationModel ? $translationModel->translation : $attr;
+            return $translationModel && !is_null($translationModel->translation) ? $translationModel->translation : $attr;
 
         } catch (\Exception $e) {
         }
