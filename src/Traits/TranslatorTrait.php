@@ -97,8 +97,7 @@ trait TranslatorTrait
         $validAttributes = [];
 
         foreach ($model->getTranslationAttributes() as $attribute) {
-            $value = $model->{$attribute};
-            if (!$value || (!$model->wasChanged($attribute) && !$model->wasRecentlyCreated)) {
+            if ( !$model->wasChanged($attribute) && !$model->wasRecentlyCreated) {
                 continue;
             }
 

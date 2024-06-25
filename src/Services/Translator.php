@@ -27,7 +27,8 @@ class Translator
                     'model_id' => $this->model->id,
                     'attribute' => $attribute,
                     'locale' => $locale,
-                    'translation' => $this->getTranslation($this->model->{$attribute}, $locale)
+                    'translation' => !empty($this->model->{$attribute})
+                        ? $this->getTranslation($this->model->{$attribute}, $locale) : $this->model->{$attribute}
                 ];
             }
         }
