@@ -6,13 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class EloquentTranslate {
 
-    private $locale;
-
-    public function __construct( $locale = null )
-    {
-        $this->locale = $locale  ?? get_translate_locale();
-    }
-
     /**
      * Gets the table name where translations are stored
      *
@@ -25,6 +18,6 @@ class EloquentTranslate {
 
     public function getLocale()
     {
-        return $this->locale;
+        return get_translate_locale();
     }
 }

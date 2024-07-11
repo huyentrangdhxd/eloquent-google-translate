@@ -167,3 +167,5 @@ In the code above, we are setting translations for the `name` attribute on the m
 - Handle notranslate: add tag <span class="notranslate"> </span> if it includes strings which we do not want to translate
 - Change TranslateCommand
 
+### Important note
+- I just add more manual translate, please set env MANUAL_TRANSLATE = false if you want to translate by google cloud automaticly
