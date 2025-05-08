@@ -90,12 +90,15 @@ trait TranslatorTrait
 
         try {
             $translationModel = $this->localeTranslations->where('attribute', $key)->first();
-            if ($translationModel && !is_null($translationModel->translation) && $this->isClassCastable($key)) {
+            if ($translationModel && !is_null($translationModel->translation)) {
+                $translatedValue = $translationModel->translation;
 
-                return $this->getClassCastableAttributeValue($key, $translationModel->translation);
+                if ($this->isClassCastable($key)) {
+                    return $this->getClassCastableAttributeValue($key, $translatedValue);
+                }
+
+                return $translatedValue;
             }
-
-            return $attr;
         } catch (\Exception $e) {
         }
 
