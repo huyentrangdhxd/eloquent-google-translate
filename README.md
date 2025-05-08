@@ -5,7 +5,7 @@ This package serves as the complete solution to handling translations in a larav
 ## Installation 
 You can install easily via composer.
 ```
-composer require paschal-customize-tracy/eloquent-translate v1.0.6
+composer require paschal-customize-tracy/eloquent-translate v1.0.7
 ```
 
 The package will automatically register itself for supported laravel versions, if not, you should add this to your providers array in `config/app.php`
