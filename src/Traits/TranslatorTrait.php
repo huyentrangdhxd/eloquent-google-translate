@@ -2,6 +2,7 @@
 
 namespace TracyTran\EloquentTranslate\Traits;
 
+use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Str;
 use TracyTran\EloquentTranslate\Jobs\TranslatorJob;
 use TracyTran\EloquentTranslate\Models\Translation;
@@ -41,6 +42,27 @@ trait TranslatorTrait
                 $builder->with('localeTranslations');
             });
         }
+    }
+
+    protected function mutateAttributeForArray($key, $value)
+    {
+        if ($this->isClassCastable($key)) {
+            if (in_array($key, $this->getTranslationAttributes())) {
+                $value = $this->mutateAttribute($key, $value);
+            }
+            $value = $this->getClassCastableAttributeValue($key, $value);
+        } elseif (isset(static::$getAttributeMutatorCache[get_class($this)][$key]) &&
+            static::$getAttributeMutatorCache[get_class($this)][$key] === true) {
+            $value = $this->mutateAttributeMarkedAttribute($key, $value);
+
+            $value = $value instanceof \DateTimeInterface
+                ? $this->serializeDate($value)
+                : $value;
+        } else {
+            $value = $this->mutateAttribute($key, $value);
+        }
+
+        return $value instanceof Arrayable ? $value->toArray() : $value;
     }
 
     public function __call($method, $parameters)
