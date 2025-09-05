@@ -79,6 +79,8 @@ return [
         'ig'
     ],
 
+    'global_locale' => env('GLOBAL_LOCALE', 'en'),
+
     /*
     |--------------------------------------------------------------------------
     | Fallback Locale

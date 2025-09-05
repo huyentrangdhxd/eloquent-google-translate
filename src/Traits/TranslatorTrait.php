@@ -89,7 +89,9 @@ trait TranslatorTrait
         }
 
         try {
-            $translationModel = $this->localeTranslations->where('attribute', $key)->first();
+
+            $translationModel = $this->getTranslationOrGlobalValue($key);
+
             if ($translationModel && !is_null($translationModel->translation)) {
                 $translatedValue = $translationModel->translation;
 
@@ -103,6 +105,25 @@ trait TranslatorTrait
         }
 
         return $attr;
+    }
+
+    protected function getTranslationOrGlobalValue(string $key)
+    {
+        $globalLocale = config('eloquent-translate.global_locale');
+        $userLocale = EloquentTranslate::getLocale();
+
+        foreach (array_unique([$userLocale, $globalLocale]) as $locale) {
+            $model = $this->localeTranslations
+                ->where('attribute', $key)
+                ->where('locale', $locale)
+                ->first();
+
+            if ($model && $model->translation !== null) {
+                return $model;
+            }
+        }
+
+        return null;
     }
 
     public function getAttribute($key, $attr = null)
@@ -273,7 +294,8 @@ trait TranslatorTrait
 
     public function localeTranslations()
     {
-        return $this->translations()->where('locale', EloquentTranslate::getLocale());
+        $globalLocale = config('eloquent-translate.global_locale');
+        return $this->translations()->whereIn('locale', [EloquentTranslate::getLocale(), $globalLocale]);
     }
 
     /**
