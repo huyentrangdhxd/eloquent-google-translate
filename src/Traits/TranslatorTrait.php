@@ -112,6 +112,10 @@ trait TranslatorTrait
         $globalLocale = config('eloquent-translate.global_locale');
         $userLocale = EloquentTranslate::getLocale();
 
+        if (!in_array($userLocale, config('eloquent-translate.locales'))) {
+            return null;
+        }
+
         foreach (array_unique([$userLocale, $globalLocale]) as $locale) {
             $model = $this->localeTranslations
                 ->where('attribute', $key)
