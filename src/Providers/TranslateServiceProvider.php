@@ -4,9 +4,11 @@ namespace TracyTran\EloquentTranslate\Providers;
 
 use Illuminate\Foundation\AliasLoader;
 use Illuminate\Support\ServiceProvider;
+use RuntimeException;
+use TracyTran\EloquentTranslate\Contracts\AIServiceContract;
+use TracyTran\EloquentTranslate\Contracts\TranslationServiceContract;
 use TracyTran\EloquentTranslate\EloquentTranslate;
-
-use TracyTran\EloquentTranslate\TranslateModelObserver;
+use TracyTran\EloquentTranslate\Services\AITranslationService;
 use TracyTran\EloquentTranslate\Commands\TranslateCommand;
 use TracyTran\EloquentTranslate\Commands\DeleteTranslationCommand;
 
@@ -38,6 +40,20 @@ class TranslateServiceProvider extends ServiceProvider
         $this->app->bind('eloquent-translate', function () {
             return new EloquentTranslate();
         });
+
+        $this->app->singleton(AIServiceContract::class, function ($app) {
+            $driver = config('eloquent-translate.ai.driver', 'gemini');
+            $drivers = config('eloquent-translate.ai.drivers', []);
+            $serviceClass = data_get($drivers, "{$driver}.service");
+
+            if (! is_string($serviceClass) || ! class_exists($serviceClass)) {
+                throw new RuntimeException("Eloquent Translate AI driver [{$driver}] is not configured correctly.");
+            }
+
+            return $app->make($serviceClass);
+        });
+
+        $this->app->singleton(TranslationServiceContract::class, AITranslationService::class);
     }
 
     /**
