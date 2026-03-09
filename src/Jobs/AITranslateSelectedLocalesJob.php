@@ -66,7 +66,7 @@ class AITranslateSelectedLocalesJob implements ShouldQueue
 
             if (! empty($upsert)) {
                 $this->model->translations()->upsert($upsert, ['model', 'model_id', 'locale', 'attribute']);
-                $this->model->update(['updated_at' => now()]);
+                $this->model->where('id', $this->model->id)->update(['updated_at' => now()]);
             }
         } catch (\Throwable $exception) {
             Log::error('Auto translate by AI failed', [
