@@ -131,4 +131,44 @@ return [
 
     // key to create/update manually
     'translation_data' => 'translation_data',
+
+    'ai' => [
+        'driver' => env('ELOQUENT_TRANSLATE_AI_DRIVER'),
+        'drivers' => [
+            'claude' => [
+                'service' => TracyTran\EloquentTranslate\Services\ClaudeService::class,
+                'api_key' => env('CLAUDE_API_KEY'),
+                'api_version' => env('CLAUDE_API_VERSION', '2023-06-01'),
+                'api_model' => env('CLAUDE_API_MODEL', 'claude-sonnet-4-5-20250929'),
+            ],
+            'gemini' => [
+                'service' => TracyTran\EloquentTranslate\Services\GeminiService::class,
+                'api_key' => env('GEMINI_API_KEY'),
+                'api_model' => env('GEMINI_API_MODEL', 'gemini-2.5-flash'),
+            ],
+        ],
+        'prompts' => [
+            'multi_locale_translation' => '<<<PROMPT
+You are a professional translation expert. Your task is to translate content provided in the "fields" object.
+
+### INPUT DATA:
+{$translationData}
+
+### INSTRUCTIONS:
+1. Identify the source language from "source_locale".
+2. Translate each field in "fields" ONLY into the languages listed in "target_locales".
+3. Maintain the original formatting, HTML tags, and special characters.
+4. Ensure translations are natural and contextually accurate.
+5. Technical terms or brand names should remain unchanged unless a standard translation exists.
+6. The output must be a valid JSON object where keys are the field IDs (e.g., "1", "2") and values are objects containing the translations for each requested target locale.
+
+### OUTPUT FORMAT (Strict JSON, no prose):
+{
+    "field_id": {
+        "locale_code": "translated_text"
+    }
+}
+PROMPT;',
+        ],
+    ],
 ];

@@ -2,8 +2,12 @@
 
 namespace TracyTran\EloquentTranslate\Traits;
 
+use App\Enums\Language;
 use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
+use TracyTran\EloquentTranslate\Jobs\AITranslateSelectedLocalesJob;
 use TracyTran\EloquentTranslate\Jobs\TranslatorJob;
 use TracyTran\EloquentTranslate\Models\Translation;
 use TracyTran\EloquentTranslate\Services\Translator;
@@ -14,6 +18,10 @@ trait TranslatorTrait
 {
 
     protected $translateData = [];
+    
+    protected array $autoTranslateFields = [];
+
+    protected array $autoTranslateLocales = [];
 
     public static function getTranslationModelClassName()
     {
@@ -139,6 +147,10 @@ trait TranslatorTrait
     {
         if (config('eloquent-translate.manual_translate')) {
             $this->manualTranslate();
+            if (! empty(config('eloquent-translate.ai.driver'))) {
+                $this->translateSelectedLocalesWithAI();
+                $this->clearPendingTranslationState();
+            }
         } else {
             $this->autoTranslate($locale);
         }
@@ -336,6 +348,15 @@ trait TranslatorTrait
             unset($attributes[$multiLangs]);
         }
 
+        $this->autoTranslateFields = $this->normalizeAutoTranslateSelection(
+            $attributes['auto_translate_fields'] ?? []
+        );
+        $this->autoTranslateLocales = $this->normalizeAutoTranslateSelection(
+            $attributes['auto_translate_locales'] ?? []
+        );
+
+        unset($attributes['auto_translate_fields'], $attributes['auto_translate_locales']);
+
         return parent::fill($attributes);
     }
 
@@ -354,5 +375,40 @@ trait TranslatorTrait
         }
 
         $this->translateData = $handleDate;
+    }
+
+    protected function translateSelectedLocalesWithAI(): void
+    {
+        $fields = $this->getFieldsForAITranslation();
+        if (empty($fields) ||empty($this->autoTranslateLocales)) {
+            return;
+        }
+        dispatch(new AITranslateSelectedLocalesJob($this, Language::defaultLang(), $this->autoTranslateLocales, $fields));
+    }
+
+    protected function getFieldsForAITranslation(): array
+    {
+        $fields = [];
+        foreach ($this->autoTranslateFields as $field) {
+            if (in_array($field, $this->getTranslationAttributes())) {
+                $fields[$field] = $this->{$field};
+            }
+        }
+
+        return $fields;
+    }
+
+    protected function normalizeAutoTranslateSelection($value): array
+    {
+        return array_values(array_filter(Arr::wrap($value), function ($item) {
+            return is_string($item) && $item !== '';
+        }));
+    }
+
+    protected function clearPendingTranslationState(): void
+    {
+        $this->translateData = [];
+        $this->autoTranslateFields = [];
+        $this->autoTranslateLocales = [];
     }
 }
