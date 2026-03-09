@@ -42,7 +42,7 @@ class TranslateServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(AIServiceContract::class, function ($app) {
-            $driver = config('eloquent-translate.ai.driver', 'gemini');
+            $driver = config('eloquent-translate.ai.driver');
             $drivers = config('eloquent-translate.ai.drivers', []);
             $serviceClass = data_get($drivers, "{$driver}.service");
 

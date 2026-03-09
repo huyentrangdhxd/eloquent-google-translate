@@ -133,7 +133,7 @@ return [
     'translation_data' => 'translation_data',
 
     'ai' => [
-        'driver' => env('ELOQUENT_TRANSLATE_AI_DRIVER', 'gemini'),
+        'driver' => env('ELOQUENT_TRANSLATE_AI_DRIVER'),
         'drivers' => [
             'claude' => [
                 'service' => TracyTran\EloquentTranslate\Services\ClaudeService::class,

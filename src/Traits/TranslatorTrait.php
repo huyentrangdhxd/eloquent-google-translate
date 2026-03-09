@@ -147,8 +147,10 @@ trait TranslatorTrait
     {
         if (config('eloquent-translate.manual_translate')) {
             $this->manualTranslate();
-            $this->translateSelectedLocalesWithAI();
-            $this->clearPendingTranslationState();
+            if (! empty(config('eloquent-translate.ai.driver'))) {
+                $this->translateSelectedLocalesWithAI();
+                $this->clearPendingTranslationState();
+            }
         } else {
             $this->autoTranslate($locale);
         }
