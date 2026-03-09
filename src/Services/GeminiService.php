@@ -37,7 +37,7 @@ class GeminiService implements AIServiceContract
         }
 
         $start = microtime(true);
-        $timeout = $options['timeout'] ?? 120;
+        $timeout = $options['timeout'] ?? 500;
         $endpoint = $this->generateContentEndpoint($options);
 
         $responses = Http::pool(function (Pool $pool) use ($prompts, $options, $timeout, $endpoint) {

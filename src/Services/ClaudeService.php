@@ -104,7 +104,7 @@ class ClaudeService implements AIServiceContract
     {
         $payload = [
             'model' => $options['model'] ?? $this->defaultModel,
-//            'max_tokens' => $options['max_tokens'] ?? 5000,
+            'max_tokens' => $options['max_tokens'] ?? 5000,
             'temperature' => $options['temperature'] ?? 0.5,
             'messages' => [
                 ['role' => 'user', 'content' => $prompt],

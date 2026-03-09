@@ -20,12 +20,13 @@ class AITranslationService implements TranslationServiceContract
         }
 
         $prompts = [];
+        $options = ['max_tokens' => 50000];
 
         foreach ($targetLocales as $locale) {
             $prompts[$locale] = $this->buildTranslationPrompt($sourceLocale, [$locale], $fields);
         }
 
-        $results = $this->aiService->chatPool($prompts);
+        $results = $this->aiService->chatPool($prompts, $options);
         $data = [];
 
         foreach ($results as $result) {

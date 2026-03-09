@@ -15,6 +15,10 @@ class AITranslateSelectedLocalesJob implements ShouldQueue
 {
     use InteractsWithQueue, Queueable, SerializesModels;
 
+    protected $timeout = 600;
+
+    protected $tries = 1;
+
     public $model;
 
     public function __construct(
