@@ -378,6 +378,9 @@ trait TranslatorTrait
     protected function translateSelectedLocalesWithAI(): void
     {
         $fields = $this->getFieldsForAITranslation();
+        if (empty($fields) ||empty($this->autoTranslateLocales)) {
+            return;
+        }
         dispatch(new AITranslateSelectedLocalesJob($this, Language::defaultLang(), $this->autoTranslateLocales, $fields));
     }
 
