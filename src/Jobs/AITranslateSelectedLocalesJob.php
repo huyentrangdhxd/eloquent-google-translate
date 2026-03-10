@@ -2,7 +2,6 @@
 
 namespace TracyTran\EloquentTranslate\Jobs;
 
-use App\Enums\Queue\QueuePriority;
 use App\Models\TranslationJob;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
