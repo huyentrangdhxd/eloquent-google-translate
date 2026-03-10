@@ -133,6 +133,7 @@ return [
     'translation_data' => 'translation_data',
 
     'ai' => [
+        'max_tokens' => env('AI_MAX_TOKENS', 50000),
         'driver' => env('ELOQUENT_TRANSLATE_AI_DRIVER'),
         'drivers' => [
             'claude' => [

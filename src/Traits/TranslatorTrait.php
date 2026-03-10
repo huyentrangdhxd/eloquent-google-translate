@@ -3,6 +3,8 @@
 namespace TracyTran\EloquentTranslate\Traits;
 
 use App\Enums\Language;
+use App\Enums\TranslationStatus;
+use App\Models\TranslationJob;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
@@ -18,7 +20,7 @@ trait TranslatorTrait
 {
 
     protected $translateData = [];
-    
+
     protected array $autoTranslateFields = [];
 
     protected array $autoTranslateLocales = [];
@@ -147,7 +149,7 @@ trait TranslatorTrait
     {
         if (config('eloquent-translate.manual_translate')) {
             $this->manualTranslate();
-            if (! empty(config('eloquent-translate.ai.driver'))) {
+            if (config('eloquent-translate.ai.driver')) {
                 $this->translateSelectedLocalesWithAI();
                 $this->clearPendingTranslationState();
             }
@@ -380,10 +382,18 @@ trait TranslatorTrait
     protected function translateSelectedLocalesWithAI(): void
     {
         $fields = $this->getFieldsForAITranslation();
-        if (empty($fields) ||empty($this->autoTranslateLocales)) {
+        if (empty($fields) || empty($this->autoTranslateLocales)) {
             return;
         }
-        dispatch(new AITranslateSelectedLocalesJob($this, Language::defaultLang(), $this->autoTranslateLocales, $fields));
+        $translationJob = TranslationJob::create([
+            'model' => get_class($this),
+            'source_locale' => Language::defaultLang(),
+            'model_id' => $this->id,
+            'target_locales' => $this->autoTranslateLocales,
+            'fields' => $fields,
+            'status' => TranslationStatus::PENDING,
+        ]);
+        dispatch(new AITranslateSelectedLocalesJob($translationJob->job_id));
     }
 
     protected function getFieldsForAITranslation(): array

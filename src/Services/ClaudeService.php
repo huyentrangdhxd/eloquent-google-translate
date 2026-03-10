@@ -62,7 +62,10 @@ class ClaudeService implements AIServiceContract
 
         foreach ($prompts as $key => $prompt) {
             $response = $responses[$key];
-            $this->ensureSuccessfulResponse($response, 'messages', $key);
+            $status = $this->ensureSuccessfulResponse($response);
+            if( ! $status ) {
+                continue;
+            }
             $results[$key] = $this->createAIResponse($response->json(), $duration);
         }
 
@@ -124,7 +127,7 @@ class ClaudeService implements AIServiceContract
             ->timeout($timeout)
             ->post("{$this->baseUrl}/{$endpoint}", $payload);
 
-        $this->ensureSuccessfulResponse($response, $endpoint);
+        $this->ensureSuccessfulResponse($response);
 
         return $response;
     }
@@ -150,17 +153,17 @@ class ClaudeService implements AIServiceContract
         );
     }
 
-    private function ensureSuccessfulResponse(Response $response, string $endpoint, string|int|null $requestKey = null): void
+    private function ensureSuccessfulResponse(Response $response): bool
     {
         if (! $response->successful()) {
             Log::error('Claude API Error', [
-                'endpoint' => $endpoint,
-                'request_key' => $requestKey,
                 'status' => $response->status(),
                 'body' => $response->body(),
             ]);
 
-            throw new \RuntimeException("Claude API request failed ({$endpoint}): ".$response->body());
+            return false;
         }
+
+        return true;
     }
 }

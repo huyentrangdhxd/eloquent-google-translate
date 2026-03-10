@@ -20,7 +20,7 @@ class AITranslationService implements TranslationServiceContract
         }
 
         $prompts = [];
-        $options = ['max_tokens' => 50000];
+        $options = ['max_tokens' => config('eloquent-translate.ai.max_tokens')];
 
         foreach ($targetLocales as $locale) {
             $prompts[$locale] = $this->buildTranslationPrompt($sourceLocale, [$locale], $fields);
