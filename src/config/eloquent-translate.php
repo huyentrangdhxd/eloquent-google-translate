@@ -14,6 +14,7 @@ return [
     */
 
     'database_table' => 'translations',
+    'database_table_log' => 'translation_logs',
 
     /*
     |--------------------------------------------------------------------------

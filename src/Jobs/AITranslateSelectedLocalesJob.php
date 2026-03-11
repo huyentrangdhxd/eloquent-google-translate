@@ -2,15 +2,14 @@
 
 namespace TracyTran\EloquentTranslate\Jobs;
 
-use App\Models\TranslationJob;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Log;
 use TracyTran\EloquentTranslate\Contracts\TranslationServiceContract;
+use TracyTran\EloquentTranslate\Models\TranslationLog;
 
 class AITranslateSelectedLocalesJob implements ShouldQueue
 {
@@ -20,41 +19,39 @@ class AITranslateSelectedLocalesJob implements ShouldQueue
 
     protected $tries = 1;
 
-    public string $jobId;
+    public string $uuid;
 
-    public function __construct(string $jobId)
+    public function __construct(string $uuid)
     {
-        $this->jobId = $jobId;
+        $this->uuid = $uuid;
     }
 
     public function handle(): void
     {
-        $translationJob = TranslationJob::where('job_id', $this->jobId)->firstOrFail();
+        $translationJob = TranslationLog::where('uuid', $this->uuid)->firstOrFail();
         $translationJob->markAsProcessing();
 
         $modelClass = $translationJob->model;
         $model = $modelClass::find($translationJob->model_id);
+        $translationAttributes = $modelClass::getTranslationAttributes();
+        $translationModelClass = $modelClass::getTranslationModelClassName();
+        $upsert = [];
 
         if (! $model) {
-            return;
+            throw new \Exception("Model {$modelClass} with ID {$translationJob->model_id} not found");
         }
 
         try {
-            $translations = App::make(TranslationServiceContract::class)
+            $result = App::make(TranslationServiceContract::class)
                 ->translateMultiLocale(
                     $translationJob->source_locale,
                     $translationJob->target_locales,
                     $translationJob->fields
                 );
-            if (empty($translations) || !is_array($translations)) {
-                $translationJob->markAsCompleted($translations);
-                return;
-            }
 
-            $upsert = [];
-
-            $translationAttributes = $modelClass::getTranslationAttributes();
-            $translationModelClass = $modelClass::getTranslationModelClassName();
+            $translations = $result['translations'] ?? [];
+            $successLocales = $result['success_locales'] ?? [];
+            $failedLocales = $result['failed_locales'] ?? [];
 
             foreach ($translations as $attribute => $localeTranslations) {
 
@@ -86,14 +83,23 @@ class AITranslateSelectedLocalesJob implements ShouldQueue
 
                 $model->update(['updated_at' => now()]);
             }
-            $translationJob->markAsCompleted($translations);
+
+            if (! empty($failedLocales)) {
+                $message = 'Failed locales: ' . implode(', ', $failedLocales);
+                if (! empty($successLocales)) {
+                    $message .= ' | Translated locales: ' . implode(', ', $successLocales);
+                }
+                $translationJob->markAsFailed($message);
+            } else {
+                $translationJob->markAsCompleted($translations);
+            }
         } catch (\Throwable $exception) {
 
             Log::error('Auto translate by AI failed', [
                 'model' => $modelClass,
                 'model_id' => $translationJob->model_id,
                 'error' => $exception->getMessage(),
-                'job_id' => $this->jobId,
+                'uuid' => $this->uuid,
             ]);
             $translationJob->markAsFailed($exception->getMessage());
 

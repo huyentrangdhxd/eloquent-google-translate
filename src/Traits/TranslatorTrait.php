@@ -3,15 +3,15 @@
 namespace TracyTran\EloquentTranslate\Traits;
 
 use App\Enums\Language;
-use App\Enums\TranslationStatus;
-use App\Models\TranslationJob;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 use TracyTran\EloquentTranslate\Jobs\AITranslateSelectedLocalesJob;
 use TracyTran\EloquentTranslate\Jobs\TranslatorJob;
 use TracyTran\EloquentTranslate\Models\Translation;
+use TracyTran\EloquentTranslate\Models\TranslationLog;
 use TracyTran\EloquentTranslate\Services\Translator;
 use TracyTran\EloquentTranslate\TranslateModelObserver;
 use TracyTran\EloquentTranslate\Facades\EloquentTranslate;
@@ -385,15 +385,16 @@ trait TranslatorTrait
         if (empty($fields) || empty($this->autoTranslateLocales)) {
             return;
         }
-        $translationJob = TranslationJob::create([
+        $translationLog = TranslationLog::create([
             'model' => get_class($this),
             'source_locale' => Language::defaultLang(),
             'model_id' => $this->id,
             'target_locales' => $this->autoTranslateLocales,
             'fields' => $fields,
-            'status' => TranslationStatus::PENDING,
+            'status' => TranslationLog::PENDING,
+            'created_by' => Auth::id() ?? null,
         ]);
-        dispatch(new AITranslateSelectedLocalesJob($translationJob->job_id));
+        dispatch(new AITranslateSelectedLocalesJob($translationLog->uuid));
     }
 
     protected function getFieldsForAITranslation(): array
