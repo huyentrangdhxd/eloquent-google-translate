@@ -134,6 +134,7 @@ return [
     'translation_data' => 'translation_data',
 
     'ai' => [
+        'enable' => env('AI_ENABLE', false),
         'max_tokens' => env('AI_MAX_TOKENS', 50000),
         'driver' => env('ELOQUENT_TRANSLATE_AI_DRIVER'),
         'drivers' => [
