@@ -59,7 +59,10 @@ class GeminiService implements AIServiceContract
 
         foreach ($prompts as $key => $prompt) {
             $response = $responses[$key];
-            $this->ensureSuccessfulResponse($response, $endpoint, $key);
+            $status = $this->ensureSuccessfulResponse($response);
+            if( ! $status ) {
+                continue;
+            }
             $results[$key] = $this->createAIResponse($response->json(), $duration);
         }
 
@@ -81,7 +84,10 @@ class GeminiService implements AIServiceContract
             ],
         ]);
 
-        $this->ensureSuccessfulResponse($response, $endpoint, null, 'Gemini count tokens failed');
+        $status = $this->ensureSuccessfulResponse($response, 'Gemini count tokens failed');
+        if (! $status) {
+            return 0;
+        }
 
         return (int) ($response->json()['totalTokens'] ?? 0);
     }
@@ -113,7 +119,7 @@ class GeminiService implements AIServiceContract
             ->timeout($options['timeout'] ?? 120)
             ->post($endpoint, $this->payloadData($prompt, $options));
 
-        $this->ensureSuccessfulResponse($response, $endpoint);
+        $this->ensureSuccessfulResponse($response);
 
         return $response;
     }
@@ -169,21 +175,17 @@ class GeminiService implements AIServiceContract
         );
     }
 
-    private function ensureSuccessfulResponse(
-        Response $response,
-        string $endpoint,
-        string|int|null $requestKey = null,
-        string $message = 'Gemini API Error'
-    ): void {
+    private function ensureSuccessfulResponse(Response $response, string $message = 'Gemini API Error'): bool
+    {
         if (! $response->successful()) {
             Log::error($message, [
-                'endpoint' => $endpoint,
-                'request_key' => $requestKey,
                 'status' => $response->status(),
                 'body' => $response->body(),
             ]);
 
-            throw new \RuntimeException("Gemini API request failed ({$endpoint}): ".$response->body());
+            return false;
         }
+
+        return true;
     }
 }

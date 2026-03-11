@@ -20,7 +20,7 @@ class AITranslationService implements TranslationServiceContract
         }
 
         $prompts = [];
-        $options = ['max_tokens' => 50000];
+        $options = ['max_tokens' => config('eloquent-translate.ai.max_tokens')];
 
         foreach ($targetLocales as $locale) {
             $prompts[$locale] = $this->buildTranslationPrompt($sourceLocale, [$locale], $fields);
@@ -28,15 +28,18 @@ class AITranslationService implements TranslationServiceContract
 
         $results = $this->aiService->chatPool($prompts, $options);
         $data = [];
+        $successLocales = [];
 
-        foreach ($results as $result) {
+        foreach ($results as $locale => $result) {
+
             $content = $result->toArray()['content'] ?? [];
 
             if (! is_array($content)) {
                 continue;
             }
-
+            $successLocales[] = $locale;
             foreach ($content as $field => $translations) {
+
                 if (! is_array($translations)) {
                     continue;
                 }
@@ -47,7 +50,13 @@ class AITranslationService implements TranslationServiceContract
             }
         }
 
-        return $data;
+        $failedLocales = array_diff($targetLocales, $successLocales);
+
+        return [
+            'translations' => $data,
+            'success_locales' => $successLocales,
+            'failed_locales' => $failedLocales,
+        ];
     }
 
     private function buildTranslationPrompt(string $sourceLocale, array $targetLocales, array $fields): string

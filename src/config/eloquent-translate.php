@@ -14,6 +14,7 @@ return [
     */
 
     'database_table' => 'translations',
+    'database_table_log' => 'translation_logs',
 
     /*
     |--------------------------------------------------------------------------
@@ -133,6 +134,8 @@ return [
     'translation_data' => 'translation_data',
 
     'ai' => [
+        'enable' => env('AI_ENABLE', false),
+        'max_tokens' => env('AI_MAX_TOKENS', 50000),
         'driver' => env('ELOQUENT_TRANSLATE_AI_DRIVER'),
         'drivers' => [
             'claude' => [
