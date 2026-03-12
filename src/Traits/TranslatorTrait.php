@@ -401,7 +401,7 @@ trait TranslatorTrait
     {
         $fields = [];
         foreach ($this->autoTranslateFields as $field) {
-            if (in_array($field, $this->getTranslationAttributes())) {
+            if (in_array($field, $this->getTranslationAttributes()) && ! is_null($this->{$field})) {
                 $fields[$field] = $this->{$field};
             }
         }

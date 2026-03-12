@@ -42,16 +42,12 @@ class AITranslateSelectedLocalesJob implements ShouldQueue
         }
 
         try {
-            $result = App::make(TranslationServiceContract::class)
+            $translations = App::make(TranslationServiceContract::class)
                 ->translateMultiLocale(
                     $translationJob->source_locale,
                     $translationJob->target_locales,
                     $translationJob->fields
                 );
-
-            $translations = $result['translations'] ?? [];
-            $successLocales = $result['success_locales'] ?? [];
-            $failedLocales = $result['failed_locales'] ?? [];
 
             foreach ($translations as $attribute => $localeTranslations) {
 
@@ -84,15 +80,7 @@ class AITranslateSelectedLocalesJob implements ShouldQueue
                 $model->update(['updated_at' => now()]);
             }
 
-            if (! empty($failedLocales)) {
-                $message = 'Failed locales: ' . implode(', ', $failedLocales);
-                if (! empty($successLocales)) {
-                    $message .= ' | Translated locales: ' . implode(', ', $successLocales);
-                }
-                $translationJob->markAsFailed($message);
-            } else {
-                $translationJob->markAsCompleted($translations);
-            }
+            $translationJob->markAsCompleted($translations);
         } catch (\Throwable $exception) {
 
             Log::error('Auto translate by AI failed', [
