@@ -28,7 +28,10 @@ class AITranslateSelectedLocalesJob implements ShouldQueue
 
     public function handle(): void
     {
-        $translationJob = TranslationLog::where('uuid', $this->uuid)->firstOrFail();
+        $translationJob = TranslationLog::where('uuid', $this->uuid)->where('status', TranslationLog::PENDING)->first();
+        if (! $translationJob) {
+            throw new \Exception('Translation job permanently failed');
+        }
         $translationJob->markAsProcessing();
 
         $modelClass = $translationJob->model;
