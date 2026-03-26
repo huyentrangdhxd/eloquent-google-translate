@@ -94,4 +94,18 @@ class AITranslateSelectedLocalesJob implements ShouldQueue
             throw $exception;
         }
     }
+
+    public function failed(\Throwable $exception): void
+    {
+        $translationJob = TranslationLog::where('uuid', $this->uuid)->firstOrFail();
+
+        if ($translationJob) {
+            $translationJob->markAsFailed($exception->getMessage());
+        }
+
+        Log::error('Translation job permanently failed', [
+            'uuid' => $translationJob->uuid,
+            'error' => $exception->getMessage(),
+        ]);
+    }
 }
