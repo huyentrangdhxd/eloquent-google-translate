@@ -28,55 +28,35 @@ class AITranslateSelectedLocalesJob implements ShouldQueue
 
     public function handle(): void
     {
-        $translationJob = TranslationLog::where('uuid', $this->uuid)->where('status', TranslationLog::PENDING)->first();
+        $translationJob = TranslationLog::where('uuid', $this->uuid)
+            ->where('status', TranslationLog::PENDING)
+            ->first();
+
         if (! $translationJob) {
             throw new \Exception('Translation job permanently failed');
         }
+
         $translationJob->markAsProcessing();
 
         $modelClass = $translationJob->model;
         $model = $modelClass::find($translationJob->model_id);
-        $translationAttributes = $modelClass::getTranslationAttributes();
-        $translationModelClass = $modelClass::getTranslationModelClassName();
-        $upsert = [];
 
         if (! $model) {
             throw new \Exception("Model {$modelClass} with ID {$translationJob->model_id} not found");
         }
 
+        $translationAttributes = $modelClass::getTranslationAttributes();
+        $translationModelClass = $modelClass::getTranslationModelClassName();
+
         try {
-            $result = App::make(TranslationServiceContract::class)
-                ->translateMultiLocale(
-                    $translationJob->source_locale,
-                    $translationJob->target_locales,
-                    $translationJob->fields
-                );
+            [$translations, $successLocales, $failedLocales] = $this->translateWithRetry($translationJob);
 
-            $translations = $result['translations'] ?? [];
-            $successLocales = $result['success_locales'] ?? [];
-            $failedLocales = $result['failed_locales'] ?? [];
-
-            foreach ($translations as $attribute => $localeTranslations) {
-
-                if (! in_array($attribute, $translationAttributes) || ! is_array($localeTranslations)) {
-                    continue;
-                }
-
-                foreach ($localeTranslations as $locale => $translation) {
-
-                    if (! in_array($locale, $translationJob->target_locales) || is_null($translation)) {
-                        continue;
-                    }
-
-                    $upsert[] = [
-                        'model' => $translationModelClass,
-                        'model_id' => $translationJob->model_id,
-                        'attribute' => $attribute,
-                        'locale' => $locale,
-                        'translation' => $translation,
-                    ];
-                }
-            }
+            $upsert = $this->buildUpsertData(
+                $translations,
+                $translationAttributes,
+                $translationModelClass,
+                $translationJob
+            );
 
             if (! empty($upsert)) {
                 $model->translations()->upsert(
@@ -97,17 +77,84 @@ class AITranslateSelectedLocalesJob implements ShouldQueue
                 $translationJob->markAsCompleted($translations);
             }
         } catch (\Throwable $exception) {
-
             Log::error('Auto translate by AI failed', [
-                'model' => $modelClass,
+                'model'    => $modelClass,
                 'model_id' => $translationJob->model_id,
-                'error' => $exception->getMessage(),
-                'uuid' => $this->uuid,
+                'error'    => $exception->getMessage(),
+                'uuid'     => $this->uuid,
             ]);
+
             $translationJob->markAsFailed($exception->getMessage());
 
             throw $exception;
         }
+    }
+
+    private function translateWithRetry(TranslationLog $translationJob): array
+    {
+        $localesQueue = $translationJob->target_locales;
+        $translations = [];
+        $successLocales = [];
+        $failedLocales = [];
+        $maxRetries = 3;
+
+        for ($attempt = 0; $attempt <= $maxRetries; $attempt++) {
+            if (empty($localesQueue)) {
+                break;
+            }
+
+            $result = App::make(TranslationServiceContract::class)
+                ->translateMultiLocale(
+                    $translationJob->source_locale,
+                    $localesQueue,
+                    $translationJob->fields
+                );
+
+            foreach ($result['translations'] ?? [] as $attribute => $localeTranslations) {
+                foreach ($localeTranslations as $locale => $translation) {
+                    if (isset($translation)) {
+                        $translations[$attribute][$locale] = $translation;
+                    }
+                }
+            }
+
+            $successLocales = array_merge($successLocales, $result['success_locales'] ?? []);
+            $failedLocales  = $result['failed_locales'] ?? [];
+            $localesQueue   = $failedLocales;
+        }
+
+        return [$translations, $successLocales, $failedLocales];
+    }
+
+    private function buildUpsertData(
+        array $translations,
+        array $translationAttributes,
+        string $translationModelClass,
+        TranslationLog $translationJob
+    ): array {
+        $upsert = [];
+
+        foreach ($translations as $attribute => $localeTranslations) {
+            if (! in_array($attribute, $translationAttributes) || ! is_array($localeTranslations)) {
+                continue;
+            }
+
+            foreach ($localeTranslations as $locale => $translation) {
+                if (! in_array($locale, $translationJob->target_locales) || is_null($translation)) {
+                    continue;
+                }
+
+                $upsert[] = [
+                    'model'       => $translationModelClass,
+                    'model_id'    => $translationJob->model_id,
+                    'attribute'   => $attribute,
+                    'locale'      => $locale,
+                    'translation' => $translation,
+                ];
+            }
+        }
+
+        return $upsert;
     }
 
     public function failed(\Throwable $exception): void
@@ -119,7 +166,7 @@ class AITranslateSelectedLocalesJob implements ShouldQueue
         }
 
         Log::error('Translation job permanently failed', [
-            'uuid' => $translationJob->uuid,
+            'uuid'  => $translationJob->uuid,
             'error' => $exception->getMessage(),
         ]);
     }
