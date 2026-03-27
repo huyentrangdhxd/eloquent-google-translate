@@ -78,10 +78,10 @@ class AITranslateSelectedLocalesJob implements ShouldQueue
             }
         } catch (\Throwable $exception) {
             Log::error('Auto translate by AI failed', [
-                'model'    => $modelClass,
+                'model' => $modelClass,
                 'model_id' => $translationJob->model_id,
-                'error'    => $exception->getMessage(),
-                'uuid'     => $this->uuid,
+                'error' => $exception->getMessage(),
+                'uuid' => $this->uuid,
             ]);
 
             $translationJob->markAsFailed($exception->getMessage());
@@ -119,8 +119,8 @@ class AITranslateSelectedLocalesJob implements ShouldQueue
             }
 
             $successLocales = array_merge($successLocales, $result['success_locales'] ?? []);
-            $failedLocales  = $result['failed_locales'] ?? [];
-            $localesQueue   = $failedLocales;
+            $failedLocales = $result['failed_locales'] ?? [];
+            $localesQueue = $failedLocales;
         }
 
         return [$translations, $successLocales, $failedLocales];
