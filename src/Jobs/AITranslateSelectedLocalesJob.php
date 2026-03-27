@@ -145,10 +145,10 @@ class AITranslateSelectedLocalesJob implements ShouldQueue
                 }
 
                 $upsert[] = [
-                    'model'       => $translationModelClass,
-                    'model_id'    => $translationJob->model_id,
-                    'attribute'   => $attribute,
-                    'locale'      => $locale,
+                    'model' => $translationModelClass,
+                    'model_id' => $translationJob->model_id,
+                    'attribute' => $attribute,
+                    'locale' => $locale,
                     'translation' => $translation,
                 ];
             }
@@ -166,7 +166,7 @@ class AITranslateSelectedLocalesJob implements ShouldQueue
         }
 
         Log::error('Translation job permanently failed', [
-            'uuid'  => $translationJob->uuid,
+            'uuid' => $translationJob->uuid,
             'error' => $exception->getMessage(),
         ]);
     }
