@@ -11,6 +11,7 @@ use TracyTran\EloquentTranslate\EloquentTranslate;
 use TracyTran\EloquentTranslate\Services\AITranslationService;
 use TracyTran\EloquentTranslate\Commands\TranslateCommand;
 use TracyTran\EloquentTranslate\Commands\DeleteTranslationCommand;
+use TracyTran\EloquentTranslate\Services\DeepLService;
 
 class TranslateServiceProvider extends ServiceProvider
 {
@@ -53,7 +54,13 @@ class TranslateServiceProvider extends ServiceProvider
             return $app->make($serviceClass);
         });
 
-        $this->app->singleton(TranslationServiceContract::class, AITranslationService::class);
+        $this->app->singleton(TranslationServiceContract::class, function ($app) {
+            $driver = config('eloquent-translate.ai.driver');
+            if ($driver === 'deepl') {
+                return $app->make(DeepLService::class);
+            }
+            return $app->make(AITranslationService::class);
+        });
     }
 
     /**

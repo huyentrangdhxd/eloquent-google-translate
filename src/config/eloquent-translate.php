@@ -147,7 +147,12 @@ return [
             'gemini' => [
                 'service' => TracyTran\EloquentTranslate\Services\GeminiService::class,
                 'api_key' => env('GEMINI_API_KEY'),
-                'api_model' => env('GEMINI_API_MODEL', 'gemini-2.5-flash'),
+                'api_model' => env('GEMINI_API_MODEL', 'gemini-1.5-flash'),
+            ],
+            'deepl' => [
+                'service' => TracyTran\EloquentTranslate\Services\DeepLService::class,
+                'api_key' => env('DEEPL_API_KEY'),
+                'api_url' => env('DEEPL_API_URL', 'https://api-free.deepl.com/v2/translate'),
             ],
         ],
         'prompts' => [
